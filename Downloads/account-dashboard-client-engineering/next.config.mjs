@@ -13,6 +13,8 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  output: 'export',
+  basePath: '/account-dashboard-client-engineering',
   images: {
     unoptimized: true,
   },
