@@ -1,5 +1,6 @@
 "use client"
 
+import * as React from "react"
 import { useState, useEffect, useTransition } from "react"
 import { Plus, AlertTriangle } from "lucide-react"
 import { Input } from "@/components/ui/input"
@@ -13,6 +14,7 @@ import { FloatingSearch } from "@/components/floating-search"
 import { getAccounts, searchAccounts } from "@/app/actions"
 import type { Account, TeamMember } from "@/lib/supabase"
 import { useDebounce } from "@/hooks/use-debounce"
+import { useSearchAccounts, useAccounts } from "@/hooks/use-accounts"
 
 interface AccountDashboardProps {
   initialAccounts: Account[]
@@ -21,65 +23,41 @@ interface AccountDashboardProps {
 }
 
 export function AccountDashboard({ initialAccounts, initialTeamMembers, usedMockData }: AccountDashboardProps) {
-  const [accounts, setAccounts] = useState<Account[]>(initialAccounts)
-  const [teamMembers, setTeamMembers] = useState<Record<string, TeamMember[]>>(initialTeamMembers)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [activeTab, setActiveTab] = useState("all")
-  const [isPending, startTransition] = useTransition()
-  const [usingMockData, setUsingMockData] = useState(usedMockData)
-
+  const [activeTab, setActiveTab] = React.useState<string>("all")
+  const [searchQuery, setSearchQuery] = React.useState<string>("")
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
 
-  // Handle search
-  useEffect(() => {
-    if (debouncedSearchQuery) {
-      startTransition(async () => {
-        try {
-          const {
-            accounts: searchResults,
-            teamMembers: searchTeamMembers,
-            usedMockData,
-          } = await searchAccounts(debouncedSearchQuery)
-          setAccounts(searchResults)
-          setTeamMembers(searchTeamMembers)
-          setUsingMockData(usedMockData)
-        } catch (error) {
-          console.error("Search error:", error)
-          // Keep the current state on error
-        }
-      })
-    } else if (activeTab !== "all") {
-      // If search is cleared but we have a category filter
-      startTransition(async () => {
-        try {
-          const {
-            accounts: filteredAccounts,
-            teamMembers: filteredTeamMembers,
-            usedMockData,
-          } = await getAccounts(activeTab)
-          setAccounts(filteredAccounts)
-          setTeamMembers(filteredTeamMembers)
-          setUsingMockData(usedMockData)
-        } catch (error) {
-          console.error("Filter error:", error)
-          // Keep the current state on error
-        }
-      })
-    } else {
-      // If search is cleared and no category filter
-      startTransition(async () => {
-        try {
-          const { accounts: allAccounts, teamMembers: allTeamMembers, usedMockData } = await getAccounts()
-          setAccounts(allAccounts)
-          setTeamMembers(allTeamMembers)
-          setUsingMockData(usedMockData)
-        } catch (error) {
-          console.error("Fetch error:", error)
-          // Keep the current state on error
-        }
-      })
-    }
-  }, [debouncedSearchQuery, activeTab])
+  const {
+    accounts: searchResults,
+    teamMembers: searchTeamMembers,
+    usedMockData: searchUsedMockData,
+    loading: searchLoading,
+    error: searchError
+  } = useSearchAccounts(debouncedSearchQuery)
+
+  const {
+    accounts: filteredAccounts,
+    teamMembers: filteredTeamMembers,
+    usedMockData: filteredUsedMockData,
+    loading: filteredLoading,
+    error: filteredError
+  } = useAccounts(activeTab)
+
+  const accounts = debouncedSearchQuery ? searchResults : filteredAccounts
+  const teamMembers = debouncedSearchQuery ? searchTeamMembers : filteredTeamMembers
+  const loading = debouncedSearchQuery ? searchLoading : filteredLoading
+  const error = debouncedSearchQuery ? searchError : filteredError
+
+  if (loading) {
+    return <div>Loading...</div>
+  }
+
+  if (error) {
+    console.error("Error loading accounts:", error)
+  }
+
+  const [isPending, startTransition] = useTransition()
+  const [usingMockData, setUsingMockData] = useState(usedMockData)
 
   // Handle tab change
   const handleTabChange = (value: string) => {

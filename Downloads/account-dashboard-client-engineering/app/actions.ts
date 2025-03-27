@@ -1,5 +1,3 @@
-"use server"
-
 import { type Account, type TeamMember, getMockAccounts, searchMockAccounts, getSupabaseClient } from "@/lib/supabase"
 
 // Test function to verify database connection and table existence
