@@ -24,8 +24,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
         
+      - name: Debug: List files
+        run: ls -la && echo "Current directory: $(pwd)"
+        
       - name: Build
         run: npm run build
+        
+      - name: Debug: List build output
+        run: ls -la out && echo "Build output directory: $(pwd)/out"
         
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
